@@ -6,6 +6,7 @@ import (
 	"hash/crc32"
 	"hash/fnv"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -177,6 +178,7 @@ func main() {
 	// Produz mensagens
 	start := time.Now()
 	distribution := make(map[int32]int)
+	var hashTimes []time.Duration
 
 	for i := 0; i < numMessages; i++ {
 		key := uuid.New().String()
@@ -193,7 +195,12 @@ func main() {
 			Value: sarama.ByteEncoder(payload),
 		}
 
+		// Mede tempo de cálculo do hash/particionamento
+		hashStart := time.Now()
 		partition, _, err := producer.SendMessage(msg)
+		hashDuration := time.Since(hashStart)
+		hashTimes = append(hashTimes, hashDuration)
+
 		if err != nil {
 			log.Printf("Erro ao enviar: %v", err)
 			continue
@@ -215,22 +222,137 @@ func main() {
 		totalSent += count
 	}
 
+	// Calcula métricas de performance
+	avgHashTime := calculateAvgDuration(hashTimes)
+
+	// Calcula métricas de distribuição
+	numPartitions := len(distribution)
+	expectedPerPartition := float64(totalSent) / float64(numPartitions)
+	stdDev := calculateStdDev(distribution, expectedPerPartition)
+	collisionRate := calculateCollisionRate(distribution, expectedPerPartition)
+	coefficientOfVariation := stdDev / expectedPerPartition
+
 	// Mostra resultado
 	fmt.Printf("\n✓ Concluído!\n")
-	fmt.Printf("Tempo: %v\n", duration)
+	fmt.Printf("Tempo total: %v\n", duration)
 	fmt.Printf("Taxa: %.0f msg/s\n", float64(numMessages)/duration.Seconds())
 	fmt.Printf("Total de mensagens enviadas: %d/%d\n", totalSent, numMessages)
 	fmt.Printf("Taxa de sucesso: %.2f%%\n\n", (float64(totalSent)/float64(numMessages))*100)
 
-	fmt.Println("Distribuição por partição:")
-	for p := int32(0); p < int32(len(distribution)); p++ {
-		count := distribution[p]
-		percentage := (float64(count) / float64(totalSent)) * 100
-		fmt.Printf("  P%d: %d mensagens (%.2f%%)\n", p, count, percentage)
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Println("MÉTRICAS DE PERFORMANCE")
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Printf("Tempo médio por hash: %v\n", avgHashTime)
+	fmt.Printf("Throughput teórico: %.0f msg/s\n\n", 1000000000.0/float64(avgHashTime.Nanoseconds()))
+
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Println("MÉTRICAS DE DISTRIBUIÇÃO")
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Printf("Total de partições: %d\n", numPartitions)
+	fmt.Printf("Média esperada por partição: %.2f mensagens\n", expectedPerPartition)
+	fmt.Printf("Desvio padrão: %.2f\n", stdDev)
+	fmt.Printf("Coeficiente de variação: %.4f (%.2f%%)\n", coefficientOfVariation, coefficientOfVariation*100)
+	fmt.Printf("Taxa de colisão (>5%% desvio): %.2f%%\n\n", collisionRate)
+
+	fmt.Println("═══════════════════════════════════════════════")
+	fmt.Println("DISTRIBUIÇÃO POR PARTIÇÃO")
+	fmt.Println("═══════════════════════════════════════════════")
+
+	// Ordena partições para exibição
+	var partitions []int32
+	for p := range distribution {
+		partitions = append(partitions, p)
 	}
 
-	fmt.Printf("\nResumo:\n")
-	fmt.Printf("  Total de partições: %d\n", len(distribution))
-	fmt.Printf("  Total enviado: %d mensagens\n", totalSent)
-	fmt.Printf("  Média por partição: %.0f mensagens\n", float64(totalSent)/float64(len(distribution)))
+	for i := int32(0); i < int32(numPartitions); i++ {
+		count := distribution[i]
+		percentage := (float64(count) / float64(totalSent)) * 100
+		deviation := float64(count) - expectedPerPartition
+		deviationPercent := (deviation / expectedPerPartition) * 100
+
+		indicator := " "
+		if math.Abs(deviationPercent) > 5 {
+			indicator = "⚠"
+		}
+
+		fmt.Printf("  %s P%02d: %6d msgs (%.2f%%) | Desvio: %+7.2f (%+6.2f%%)\n",
+			indicator, i, count, percentage, deviation, deviationPercent)
+	}
+
+	fmt.Printf("\n═══════════════════════════════════════════════")
+	fmt.Println("\nRESUMO ESTATÍSTICO")
+	fmt.Println("═══════════════════════════════════════════════")
+
+	minCount, maxCount := getMinMax(distribution)
+	fmt.Printf("Partição com menos msgs: %d\n", minCount)
+	fmt.Printf("Partição com mais msgs: %d\n", maxCount)
+	fmt.Printf("Diferença (max-min): %d\n", maxCount-minCount)
+	fmt.Printf("Razão (max/min): %.2fx\n", float64(maxCount)/float64(minCount))
+}
+
+// calculateAvgDuration calcula a duração média
+func calculateAvgDuration(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	var total int64
+	for _, d := range durations {
+		total += d.Nanoseconds()
+	}
+	return time.Duration(total / int64(len(durations)))
+}
+
+// calculateStdDev calcula o desvio padrão da distribuição
+func calculateStdDev(distribution map[int32]int, mean float64) float64 {
+	if len(distribution) == 0 {
+		return 0
+	}
+
+	var sumSquares float64
+	for _, count := range distribution {
+		diff := float64(count) - mean
+		sumSquares += diff * diff
+	}
+
+	variance := sumSquares / float64(len(distribution))
+	return math.Sqrt(variance)
+}
+
+// calculateCollisionRate calcula a taxa de partições com desvio > 5%
+func calculateCollisionRate(distribution map[int32]int, mean float64) float64 {
+	if len(distribution) == 0 {
+		return 0
+	}
+
+	collisions := 0
+	for _, count := range distribution {
+		deviation := math.Abs(float64(count) - mean)
+		deviationPercent := (deviation / mean) * 100
+		if deviationPercent > 5 {
+			collisions++
+		}
+	}
+
+	return (float64(collisions) / float64(len(distribution))) * 100
+}
+
+// getMinMax retorna o menor e maior valor de mensagens em partições
+func getMinMax(distribution map[int32]int) (int, int) {
+	if len(distribution) == 0 {
+		return 0, 0
+	}
+
+	min := int(^uint(0) >> 1) // max int
+	max := 0
+
+	for _, count := range distribution {
+		if count < min {
+			min = count
+		}
+		if count > max {
+			max = count
+		}
+	}
+
+	return min, max
 }
