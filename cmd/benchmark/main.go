@@ -175,7 +175,7 @@ var globalNumMessages int
 
 func main() {
 	numMessages := 100000
-	broker := "localhost:9092"
+	broker := "kafka:19092"
 	topic := "create-10"
 
 	globalTopic = topic

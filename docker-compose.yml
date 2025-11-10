@@ -1,10 +1,22 @@
 services:
   go-app:
-    image: golang:latest
+    container_name: go-app
+    image: golang:1.24
     working_dir: /app
+    environment:
+      GO111MODULE: "on"
+      GOCACHE: "/app/.cache"
+      GOMODCACHE: "/app/.cache-mod"
+      GOPATH: "/go"
     volumes:
       - ./:/app
-    command: go run main.go
+    command: tail -f /dev/null
+    depends_on:
+      - init-kafka
+      - kafka
+      - zookeeper
+    networks:
+      - kafka-partitioner-benchmark
 
   zookeeper:
     container_name: zookeeper
@@ -74,6 +86,5 @@ services:
 
 networks:
   kafka-partitioner-benchmark:
-    name: bubble
+    name: kafka-partitioner-benchmark
     driver: bridge
-    external: true

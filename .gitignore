@@ -24,3 +24,5 @@ vendor/
 
 # Resultados
 results/
+.cache/
+.cache-mod/

@@ -6,9 +6,6 @@
 .DEFAULT:
 	@: # Do nothing for unknown targets
 
-RUN = docker-compose run --rm -v $(PWD):/app -w /app --user $(id -u $USER):$(id -g $USER) --entrypoint
-APP = $(RUN) bash go-app
-
 ##@ Development resources
 
 setup: ## Setup the project
@@ -21,10 +18,10 @@ setup: ## Setup the project
 	@echo "\033[1;34mAccess Redpanda =====> http://localhost:8660\033[0m"
 
 benchmark: ## Run the benchmark
-	$(APP) go run cmd/benchmark/main.go
+	docker-compose exec -it go-app bash -c "cd /app/cmd/benchmark && go run main.go"
 
 container: ## Access the application container
-	docker-compose exec -it  app bash
+	docker-compose exec -it go-app bash
 
 check-docker: ## Check if Docker is installed
 	@docker --version > /dev/null 2>&1 || (echo "Docker is not installed. Please install Docker and try again." && exit 1)
