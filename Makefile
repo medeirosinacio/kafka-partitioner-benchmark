@@ -16,12 +16,12 @@ setup: ## Setup the project
 	docker compose down --remove-orphans
 	docker-compose build
 	docker-compose up -d --force-recreate
-	@echo "\033[1;32mSetup concluído com sucesso.\033[0m"
-	@echo "\033[1;34mRodar benchmark  =======> make benchmark\033[0m"
-	@echo "\033[1;34mAcessar Redpanda =======> http://localhost:8660\033[0m"
+	@echo "\033[1;32mSetup completed successfully.\033[0m"
+	@echo "\033[1;34mRun benchmark  =======> make benchmark\033[0m"
+	@echo "\033[1;34mAccess Redpanda =====> http://localhost:8660\033[0m"
 
 benchmark: ## Run the benchmark
-	docker-compose exec app go run cmd/benchmark/main.go
+	$(APP) go run cmd/benchmark/main.go
 
 container: ## Access the application container
 	docker-compose exec -it  app bash
@@ -32,5 +32,5 @@ check-docker: ## Check if Docker is installed
 help: ## Show this help message
 	@echo "Usage: make [command]"
 	@echo ""
-	@echo "Commands available:"
+	@echo "Available commands:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)

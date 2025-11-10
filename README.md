@@ -3,34 +3,34 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Ferramenta de benchmark para testar e comparar o desempenho de algoritmos de hash no particionamento de mensagens Kafka. Mede qualidade de distribuição, throughput e taxas de colisão entre diferentes estratégias de particionamento.
+Benchmark tool for testing and comparing hash algorithm performance in Kafka message partitioning. Measures distribution quality, throughput, and collision rates across different partitioning strategies.
 
-## 🎯 Objetivo
+## 🎯 Objective
 
-Este projeto tem como objetivo identificar o melhor algoritmo de hash para particionamento de mensagens no Apache Kafka, considerando:
+This project aims to identify the best hash algorithm for message partitioning in Apache Kafka, considering:
 
-- **Performance**: Tempo médio de processamento por mensagem
-- **Distribuição**: Uniformidade na distribuição entre partições
-- **Consistência**: Estabilidade e previsibilidade do particionamento
-- **Variabilidade**: Desvio padrão e coeficiente de variação
+- **Performance**: Average processing time per message
+- **Distribution**: Uniformity in distribution across partitions
+- **Consistency**: Stability and predictability of partitioning
+- **Variability**: Standard deviation and coefficient of variation
 
-## 🚀 Algoritmos Testados
+## 🚀 Tested Algorithms
 
-| Algoritmo | Estratégia | Descrição |
-|-----------|-----------|-----------|
-| **CRC32** | Hash direto + módulo | Checksum CRC32 IEEE com operação de módulo |
-| **CRC32 Random** | Hash como seed | CRC32 como seed para random determinístico |
-| **Murmur2** | Hash direto + módulo | Implementação compatível com Kafka Java |
-| **Murmur2 Random** | Hash como seed | Murmur2 como seed para random determinístico |
-| **FNV-1a** | Hash direto + módulo | FNV-1a (Fowler-Noll-Vo) de 32 bits |
-| **FNV-1a Random** | Hash como seed | FNV-1a como seed para random determinístico |
+| Algorithm | Strategy | Description |
+|-----------|----------|-------------|
+| **CRC32** | Direct hash + modulo | CRC32 IEEE checksum with modulo operation |
+| **CRC32 Random** | Hash as seed | CRC32 as seed for deterministic random |
+| **Murmur2** | Direct hash + modulo | Implementation compatible with Kafka Java |
+| **Murmur2 Random** | Hash as seed | Murmur2 as seed for deterministic random |
+| **FNV-1a** | Direct hash + modulo | 32-bit FNV-1a (Fowler-Noll-Vo) |
+| **FNV-1a Random** | Hash as seed | FNV-1a as seed for deterministic random |
 
-## 📊 Resultados de Exemplo
+## 📊 Sample Results
 
-### Tópico com 10 Partições (100.000 mensagens)
+### Topic with 10 Partitions (100,000 messages)
 
-| Algoritmo | Tempo Médio (ms) | Desvio Padrão | Coef. Variação (%) | Diff (max-min) |
-|-----------|------------------|---------------|--------------------|----------------|
+| Algorithm | Avg Time (ms) | Std Dev | Coef. of Variation (%) | Diff (max-min) |
+|-----------|---------------|---------|------------------------|----------------|
 | crc32 | 0.416 | 87.93 | 0.88 | 320 |
 | consistent_random | 0.425 | 312.45 | 3.12 | 1,024 |
 | murmur2 | 0.427 | 80.12 | 0.80 | 232 |
@@ -38,144 +38,144 @@ Este projeto tem como objetivo identificar o melhor algoritmo de hash para parti
 | fnv1a | 0.411 | 36.30 | 0.36 | 111 |
 | fnv1a_random | 0.421 | 287.54 | 2.88 | 891 |
 
-### 🏆 Destaques
+### 🏆 Highlights
 
-- **⚡ Mais Rápido**: FNV-1a (0.411 ms)
-- **📈 Melhor Distribuição**: FNV-1a (36.30 desvio padrão)
-- **🎯 Menor Variação**: FNV-1a (0.36%)
-- **⚖️ Menor Diferença Max-Min**: FNV-1a (111 mensagens)
+- **⚡ Fastest**: FNV-1a (0.411 ms)
+- **📈 Best Distribution**: FNV-1a (36.30 std dev)
+- **🎯 Lowest Variation**: FNV-1a (0.36%)
+- **⚖️ Smallest Max-Min Difference**: FNV-1a (111 messages)
 
-## 🛠️ Tecnologias
+## 🛠️ Technologies
 
-- **Go 1.21+**: Linguagem de programação
-- **Sarama**: Cliente Kafka para Go
-- **Redpanda**: Kafka-compatible streaming platform (ambiente de testes)
-- **Docker**: Containerização e ambiente isolado
+- **Go 1.21+**: Programming language
+- **Sarama**: Kafka client for Go
+- **Redpanda**: Kafka-compatible streaming platform (test environment)
+- **Docker**: Containerization and isolated environment
 
-## 📋 Pré-requisitos
+## 📋 Prerequisites
 
-- Docker e Docker Compose instalados
-- Make (opcional, mas recomendado)
-- Go 1.21+ (para desenvolvimento local)
+- Docker and Docker Compose installed
+- Make (optional but recommended)
+- Go 1.21+ (for local development)
 
-## 🔧 Instalação e Uso
+## 🔧 Installation and Usage
 
-### 1. Clone o repositório
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/seu-usuario/kafka-partitioner-benchmark.git
+git clone https://github.com/your-username/kafka-partitioner-benchmark.git
 cd kafka-partitioner-benchmark
 ```
 
-### 2. Configure o ambiente
+### 2. Setup the environment
 
 ```bash
 make setup
 ```
 
-Este comando irá:
-- Construir os containers Docker
-- Iniciar o Redpanda (Kafka-compatible)
-- Criar o tópico de testes com 10 partições
-- Preparar o ambiente para execução
+This command will:
+- Build Docker containers
+- Start Redpanda (Kafka-compatible)
+- Create test topic with 10 partitions
+- Prepare environment for execution
 
-### 3. Execute o benchmark
+### 3. Run the benchmark
 
 ```bash
 make benchmark
 ```
 
-### 4. Acesse o Redpanda Console
+### 4. Access Redpanda Console
 
-Abra o navegador em: [http://localhost:8660](http://localhost:8660)
+Open your browser at: [http://localhost:8660](http://localhost:8660)
 
-## 📈 Interpretando os Resultados
+## 📈 Interpreting Results
 
-### Métricas Importantes
+### Important Metrics
 
-1. **Tempo Médio**: Menor é melhor (indica performance)
-2. **Desvio Padrão**: Menor indica distribuição mais uniforme
-3. **Coeficiente de Variação**: Medida relativa de dispersão (menor é melhor)
-4. **Diff (max-min)**: Diferença entre partição mais e menos populada
+1. **Average Time**: Lower is better (indicates performance)
+2. **Standard Deviation**: Lower indicates more uniform distribution
+3. **Coefficient of Variation**: Relative measure of dispersion (lower is better)
+4. **Diff (max-min)**: Difference between most and least populated partitions
 
-### Arquivo de Resultado
+### Result File
 
-Após a execução, o arquivo `BENCHMARK_RESULT.md` é gerado na raiz do projeto com:
-- Configuração completa do teste
-- Tabela de resultados formatada
-- Análise e recomendação
+After execution, the file `BENCHMARK_RESULT.md` is generated at the project root with:
+- Complete test configuration
+- Formatted results table
+- Analysis and recommendation
 
-## 🎛️ Configuração
+## 🎛️ Configuration
 
-Você pode modificar os parâmetros do benchmark editando `cmd/benchmark/main.go`:
+You can modify benchmark parameters by editing `cmd/benchmark/main.go`:
 
 ```go
-numMessages := 100000  // Número de mensagens
-broker := "localhost:9092"  // Endereço do broker
-topic := "create-10"  // Nome do tópico
+numMessages := 100000  // Number of messages
+broker := "localhost:9092"  // Broker address
+topic := "create-10"  // Topic name
 ```
 
-## 🔍 Como Funciona
+## 🔍 How It Works
 
-### Estratégias de Particionamento
+### Partitioning Strategies
 
-#### 1. Hash Direto + Módulo
+#### 1. Direct Hash + Modulo
 ```go
 hash := algorithm(key)
 partition := hash % numPartitions
 ```
 
-#### 2. Hash como Seed (Random Determinístico)
+#### 2. Hash as Seed (Deterministic Random)
 ```go
 hash := algorithm(key)
 random := NewRandom(hash)
 partition := random.Next(numPartitions)
 ```
 
-### Fluxo de Execução
+### Execution Flow
 
-1. Para cada algoritmo:
-   - Configura o partitioner no producer
-   - Envia N mensagens com chaves únicas
-   - Mede tempo de hash por mensagem
-   - Registra distribuição por partição
+1. For each algorithm:
+   - Configure partitioner in producer
+   - Send N messages with unique keys
+   - Measure hash time per message
+   - Record distribution per partition
 
-2. Calcula métricas:
-   - Tempo médio de hash
-   - Desvio padrão da distribuição
-   - Coeficiente de variação
-   - Diferença max-min entre partições
+2. Calculate metrics:
+   - Average hash time
+   - Standard deviation of distribution
+   - Coefficient of variation
+   - Max-min difference between partitions
 
-3. Gera relatório comparativo
+3. Generate comparative report
 
-## 📝 Comandos Make Disponíveis
+## 📝 Available Make Commands
 
 ```bash
-make setup      # Configura o ambiente completo
-make benchmark  # Executa o benchmark
-make container  # Acessa o container da aplicação
-make help       # Mostra todos os comandos disponíveis
+make setup      # Setup complete environment
+make benchmark  # Run benchmark
+make container  # Access application container
+make help       # Show all available commands
 ```
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Contribuições são bem-vindas! Sinta-se à vontade para:
+Contributions are welcome! Feel free to:
 
-1. Fazer fork do projeto
-2. Criar uma branch para sua feature (`git checkout -b feature/NovaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/NovaFeature`)
-5. Abrir um Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/NewFeature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/NewFeature`)
+5. Open a Pull Request
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 👨‍💻 Autor
+## 👨‍💻 Author
 
 Douglas Medeiros
 
-## 🔗 Links Úteis
+## 🔗 Useful Links
 
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 - [Sarama Client](https://github.com/IBM/sarama)
@@ -185,4 +185,4 @@ Douglas Medeiros
 
 ---
 
-⭐ Se este projeto foi útil, considere dar uma estrela!
+⭐ If this project was useful, consider giving it a star!
