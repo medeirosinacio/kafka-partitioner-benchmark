@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -169,15 +170,15 @@ type BenchmarkResult struct {
 func main() {
 	numMessages := 100000
 	broker := "localhost:9092"
-	topic := "create-100"
+	topic := "create-10"
 
 	algorithms := []string{
 		"crc32",
-		"consistent_random", // Agora DIFERENTE - usa random com seed
+		"consistent_random",
 		"murmur2",
-		"murmur2_random", // Agora DIFERENTE - usa random com seed
+		"murmur2_random",
 		"fnv1a",
-		"fnv1a_random", // Agora DIFERENTE - usa random com seed
+		"fnv1a_random",
 	}
 
 	fmt.Println("╔═══════════════════════════════════════════════╗")
@@ -246,7 +247,9 @@ func runBenchmark(algorithm string, numMessages int, broker string, topic string
 	var hashTimes []time.Duration
 
 	for i := 0; i < numMessages; i++ {
-		key := i
+		// key := uuidv7.Generate().String()
+		// key := uuid.New().String()
+		key := "test_key_" + strconv.Itoa(i)
 
 		message := map[string]interface{}{
 			"created_at": time.Now().Format(time.RFC3339),
@@ -256,7 +259,7 @@ func runBenchmark(algorithm string, numMessages int, broker string, topic string
 
 		msg := &sarama.ProducerMessage{
 			Topic: topic,
-			Key:   sarama.Encoder(key),
+			Key:   sarama.StringEncoder(key),
 			Value: sarama.ByteEncoder(payload),
 		}
 
