@@ -13,6 +13,8 @@ setup: ## Setup the project
 	docker compose down --remove-orphans
 	docker-compose build
 	docker-compose up -d --force-recreate
+	@echo "\033[1;34mWaiting for Kafka to be ready...\033[0m"
+	sleep 5
 	@echo "\033[1;32mSetup completed successfully.\033[0m"
 	@echo "\033[1;34mRun benchmark  =======> make benchmark\033[0m"
 	@echo "\033[1;34mAccess Redpanda =====> http://localhost:8660\033[0m"
