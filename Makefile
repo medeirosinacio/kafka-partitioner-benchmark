@@ -20,6 +20,9 @@ setup: ## Setup the project
 	@echo "\033[1;34mRodar benchmark  =======> make benchmark\033[0m"
 	@echo "\033[1;34mAcessar Redpanda =======> http://localhost:8660\033[0m"
 
+benchmark: ## Run the benchmark
+	docker-compose exec app go run cmd/benchmark/main.go
+
 container: ## Access the application container
 	docker-compose exec -it  app bash
 

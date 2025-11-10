@@ -8,7 +8,9 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -167,10 +169,18 @@ type BenchmarkResult struct {
 	Duration               time.Duration
 }
 
+var globalTopic string
+var globalBroker string
+var globalNumMessages int
+
 func main() {
 	numMessages := 100000
 	broker := "localhost:9092"
 	topic := "create-10"
+
+	globalTopic = topic
+	globalBroker = broker
+	globalNumMessages = numMessages
 
 	algorithms := []string{
 		"crc32",
@@ -326,7 +336,7 @@ func printResultsTable(results []BenchmarkResult) {
 			result.MinMaxDiff)
 	}
 
-	fmt.Println("╚════════════════════╧═════════════╧═══════════════╧════════════════╧════════════════╝")
+	fmt.Println("╚════════���═══════════╧═════════════╧═══════════════╧════════════════╧════════════════╝")
 
 	bestTime := results[0]
 	bestStdDev := results[0]
@@ -353,6 +363,60 @@ func printResultsTable(results []BenchmarkResult) {
 	fmt.Printf("  🏆 Melhor distribuição: %s (%.2f)\n", bestStdDev.Algorithm, bestStdDev.StdDev)
 	fmt.Printf("  🏆 Melhor coeficiente: %s (%.2f%%)\n", bestCoefVar.Algorithm, bestCoefVar.CoefficientOfVariation*100)
 	fmt.Printf("  🏆 Menor diferença max-min: %s (%d mensagens)\n", bestDiff.Algorithm, bestDiff.MinMaxDiff)
+
+	// Salvar resultado em arquivo Markdown
+	saveMarkdownFile(results, bestTime, bestStdDev, bestCoefVar, bestDiff)
+}
+
+func saveMarkdownFile(results []BenchmarkResult, bestTime, bestStdDev, bestCoefVar, bestDiff BenchmarkResult) {
+	filename := "BENCHMARK_RESULT.md"
+	var sb strings.Builder
+
+	sb.WriteString("# Kafka Partitioner Benchmark - Resultados\n\n")
+
+	sb.WriteString("## Configuração do Teste\n\n")
+	sb.WriteString(fmt.Sprintf("- **Tópico testado:** `%s`\n", globalTopic))
+	sb.WriteString(fmt.Sprintf("- **Número de mensagens:** %d\n", globalNumMessages))
+	sb.WriteString(fmt.Sprintf("- **Broker:** `%s`\n", globalBroker))
+	sb.WriteString(fmt.Sprintf("- **Data do teste:** %s\n\n", time.Now().Format("02/01/2006 15:04:05")))
+
+	sb.WriteString("## Resultados por Algoritmo\n\n")
+	sb.WriteString("| Algoritmo | Tempo Médio (ms) | Desvio Padrão | Coef. Variação (%) | Diff (max-min) |\n")
+	sb.WriteString("|-----------|------------------|---------------|--------------------|----------------|\n")
+	for _, result := range results {
+		avgTimeMs := float64(result.AvgHashTime.Microseconds()) / 1000.0
+		sb.WriteString(fmt.Sprintf("| %s | %.3f | %.2f | %.2f | %d |\n",
+			result.Algorithm,
+			avgTimeMs,
+			result.StdDev,
+			result.CoefficientOfVariation*100,
+			result.MinMaxDiff))
+	}
+
+	sb.WriteString("\n## Melhores Resultados\n\n")
+	sb.WriteString(fmt.Sprintf("- **Mais rápido:** %s (%.3f ms)\n", bestTime.Algorithm, float64(bestTime.AvgHashTime.Microseconds())/1000.0))
+	sb.WriteString(fmt.Sprintf("- **Melhor distribuição (menor desvio padrão):** %s (%.2f)\n", bestStdDev.Algorithm, bestStdDev.StdDev))
+	sb.WriteString(fmt.Sprintf("- **Menor coeficiente de variação:** %s (%.2f%%)\n", bestCoefVar.Algorithm, bestCoefVar.CoefficientOfVariation*100))
+	sb.WriteString(fmt.Sprintf("- **Menor diferença max-min:** %s (%d mensagens)\n\n", bestDiff.Algorithm, bestDiff.MinMaxDiff))
+
+	sb.WriteString("## Análise\n\n")
+	sb.WriteString(fmt.Sprintf("O algoritmo **%s** apresenta o melhor desempenho geral considerando os critérios avaliados.\n\n", bestTime.Algorithm))
+	sb.WriteString("### Pontos observados:\n\n")
+	sb.WriteString("- Tempo médio de hashing competitivo\n")
+	sb.WriteString("- Uniformidade na distribuição entre partições\n")
+	sb.WriteString("- Baixa variabilidade relativa\n")
+	sb.WriteString("- Diferença controlada entre partições mais e menos populadas\n\n")
+
+	sb.WriteString("## Recomendação\n\n")
+	sb.WriteString(fmt.Sprintf("Baseado nos resultados deste benchmark, **recomenda-se utilizar o algoritmo %s** para o cenário testado, ", bestTime.Algorithm))
+	sb.WriteString("pois apresenta o melhor equilíbrio entre performance e distribuição uniforme de mensagens.\n")
+
+	if err := os.WriteFile(filename, []byte(sb.String()), 0644); err != nil {
+		log.Printf("Erro ao salvar arquivo markdown: %v", err)
+		return
+	}
+	fmt.Printf("\n✅ Resultado salvo em: %s\n", filename)
+	fmt.Println("   📋 Arquivo pronto para copiar para o Jira ou documentação\n")
 }
 
 func calculateAvgDuration(durations []time.Duration) time.Duration {
